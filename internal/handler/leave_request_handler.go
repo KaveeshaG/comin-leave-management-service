@@ -2,6 +2,7 @@ package handler
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/Axontik/comin-leave-management-service/internal/domain"
 	"github.com/Axontik/comin-leave-management-service/internal/service"
@@ -34,6 +35,19 @@ func (h *LeaveRequestHandler) Create(c *gin.Context) {
 	var req domain.CreateLeaveRequestRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Convert date strings to time.Time format
+	req.StartDate, err = time.Parse("2006-01-02", req.StartDate.Format("2006-01-02"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid start date format"})
+		return
+	}
+
+	req.EndDate, err = time.Parse("2006-01-02", req.EndDate.Format("2006-01-02"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid end date format"})
 		return
 	}
 

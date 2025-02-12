@@ -50,6 +50,9 @@ func NewLeaveRepository(db *gorm.DB) LeaveRepository {
 
 // LeaveType implementation
 func (r *leaveRepository) CreateLeaveType(leaveType *domain.LeaveType) error {
+	if leaveType.ID == uuid.Nil {
+		leaveType.ID = uuid.New()
+	}
 	return r.db.Create(leaveType).Error
 }
 
@@ -60,7 +63,9 @@ func (r *leaveRepository) GetLeaveType(id uuid.UUID) (*domain.LeaveType, error) 
 }
 
 func (r *leaveRepository) UpdateLeaveType(leaveType *domain.LeaveType) error {
-	return r.db.Save(leaveType).Error
+	return r.db.Model(&domain.LeaveType{}).
+		Where("id = ? AND organization_id = ?", leaveType.ID, leaveType.OrganizationID).
+		Updates(leaveType).Error
 }
 
 func (r *leaveRepository) DeleteLeaveType(id uuid.UUID) error {

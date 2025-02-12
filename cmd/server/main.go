@@ -134,19 +134,20 @@ func (app *Application) metricsHandler(c *gin.Context) {
 }
 
 func setupRouter(app *Application) *gin.Engine {
-	authClient := auth.NewAuthClient(os.Getenv("AUTH_SERVICE_URL"))
-	if authClient == nil {
-		authClient = auth.NewAuthClient("http://localhost:8080/api/v1/auth")
+	authServiceURL := os.Getenv("AUTH_SERVICE_URL")
+	if authServiceURL == "" {
+		authServiceURL = "http://localhost:8080/api/v1/auth"
 	}
+	authClient := auth.NewAuthClient(authServiceURL)
 
-	orgClient := organization.NewOrganizationClient("http://localhost:8081/api/v1")
-	if orgClient == nil {
-		orgClient = organization.NewOrganizationClient("http://localhost:8081/api/v1")
+	orgServiceURL := os.Getenv("ORGANIZATION_SERVICE_URL")
+	if orgServiceURL == "" {
+		orgServiceURL = "http://localhost:8081/api/v1"
 	}
+	orgClient := organization.NewOrganizationClient(orgServiceURL)
 
 	router := gin.New()
 
-	// Global middleware
 	router.Use(gin.Logger())
 	router.Use(gin.Recovery())
 	router.Use(middleware.ErrorHandler())

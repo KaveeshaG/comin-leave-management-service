@@ -89,6 +89,8 @@ CREATE TABLE leave_balance_adjustments (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
+ALTER TABLE leave_types ADD CONSTRAINT unique_org_leave_type_name UNIQUE (organization_id, name);
+
 -- Create indexes
 CREATE INDEX idx_leave_types_org ON leave_types(organization_id);
 CREATE INDEX idx_leave_balances_employee ON leave_balances(employee_id);
