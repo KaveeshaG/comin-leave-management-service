@@ -26,6 +26,7 @@ type LeaveType struct {
 // LeaveBalance tracks employee's leave balance
 type LeaveBalance struct {
 	Base
+	ID             uuid.UUID  `json:"id"`
 	OrganizationID uuid.UUID  `json:"organization_id" gorm:"type:uuid;not null"`
 	EmployeeID     uuid.UUID  `json:"employee_id" gorm:"type:uuid;not null"`
 	LeaveTypeID    uuid.UUID  `json:"leave_type_id" gorm:"type:uuid"`
@@ -37,7 +38,6 @@ type LeaveBalance struct {
 	LeaveType      *LeaveType `json:"leave_type,omitempty" gorm:"foreignKey:LeaveTypeID"`
 }
 
-// LeaveRequest represents a leave application
 type LeaveRequest struct {
 	Base
 	OrganizationID uuid.UUID  `json:"organization_id" gorm:"type:uuid;not null" binding:"required"`
@@ -54,7 +54,6 @@ type LeaveRequest struct {
 	LeaveType      *LeaveType `json:"leave_type,omitempty" gorm:"foreignKey:LeaveTypeID"`
 }
 
-// LeaveRequestHistory tracks leave request status changes
 type LeaveRequestHistory struct {
 	Base
 	LeaveRequestID uuid.UUID `json:"leave_request_id" gorm:"type:uuid"`
@@ -64,7 +63,6 @@ type LeaveRequestHistory struct {
 	PerformedBy    uuid.UUID `json:"performed_by" gorm:"type:uuid;not null"`
 }
 
-// Holiday represents company holidays
 type Holiday struct {
 	Base
 	OrganizationID uuid.UUID `json:"organization_id" gorm:"type:uuid;not null"`
@@ -73,7 +71,6 @@ type Holiday struct {
 	Type           string    `json:"type" gorm:"not null"` // public, company, optional
 }
 
-// Request/Response types
 type CreateLeaveTypeRequest struct {
 	Name              string `json:"name" binding:"required"`
 	Description       string `json:"description"`
@@ -94,7 +91,7 @@ type ListLeaveTypesParams struct {
 }
 
 type CreateLeaveRequestRequest struct {
-	EmployeeID uuid.UUID `json:"employee_id" binding:"required"`
+	EmployeeID  uuid.UUID `json:"employee_id" binding:"required"`
 	LeaveTypeID uuid.UUID `json:"leave_type_id" binding:"required"`
 	StartDate   time.Time `json:"start_date" binding:"required"`
 	EndDate     time.Time `json:"end_date" binding:"required"`
@@ -135,13 +132,11 @@ const (
 	HolidayTypeOptional = "optional"
 )
 
-// GORM Hooks
 func (l *LeaveRequest) BeforeCreate(tx *gorm.DB) error {
 	if l.StartDate.After(l.EndDate) {
 		return errors.New("start date must be before end date")
 	}
 
-	// Calculate days excluding weekends
 	l.Days = calculateWorkingDays(l.StartDate, l.EndDate)
 	return nil
 }
@@ -153,7 +148,6 @@ func (l *LeaveRequest) BeforeUpdate(tx *gorm.DB) error {
 	return nil
 }
 
-// Business Logic Methods
 func (l *LeaveRequest) CanCancel() bool {
 	return l.Status == LeaveStatusPending ||
 		(l.Status == LeaveStatusApproved && l.StartDate.After(time.Now()))
@@ -163,7 +157,6 @@ func (l *LeaveRequest) CanApprove() bool {
 	return l.Status == LeaveStatusPending
 }
 
-// Helper functions
 func calculateWorkingDays(start, end time.Time) float64 {
 	var days float64
 	current := start

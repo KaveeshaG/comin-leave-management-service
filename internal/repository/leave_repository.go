@@ -152,24 +152,28 @@ func (r *leaveRepository) ListLeaveTypesWithOptions(orgID uuid.UUID, params *dom
 	return leaveTypes, total, nil
 }
 
-// LeaveRequest implementation
 func (r *leaveRepository) CreateLeaveRequest(request *domain.LeaveRequest) error {
 	return r.db.Transaction(func(tx *gorm.DB) error {
+		// Create the leave request
 		if err := tx.Create(request).Error; err != nil {
 			return err
 		}
 
 		// Update leave balance
-		balance := &domain.LeaveBalance{}
-		err := tx.Where("employee_id = ? AND leave_type_id = ? AND year = ?",
-			request.EmployeeID, request.LeaveTypeID, request.StartDate.Year()).
-			First(balance).Error
-		if err != nil {
-			return err
+		result := tx.Model(&domain.LeaveBalance{}).
+			Where("employee_id = ? AND leave_type_id = ? AND year = ?",
+				request.EmployeeID, request.LeaveTypeID, request.StartDate.Year()).
+			Update("pending_days", gorm.Expr("pending_days + ?", request.Days))
+
+		if result.Error != nil {
+			return result.Error
 		}
 
-		balance.PendingDays += request.Days
-		return tx.Save(balance).Error
+		if result.RowsAffected == 0 {
+			return fmt.Errorf("no leave balance found for employee")
+		}
+
+		return nil
 	})
 }
 
@@ -249,7 +253,22 @@ func (r *leaveRepository) GetLeaveBalance(employeeID, leaveTypeID uuid.UUID, yea
 }
 
 func (r *leaveRepository) UpdateLeaveBalance(balance *domain.LeaveBalance) error {
-	return r.db.Save(balance).Error
+	result := r.db.Model(&domain.LeaveBalance{}).
+		Where("id = ?", balance.ID).
+		Updates(map[string]interface{}{
+			"total_days": balance.TotalDays,
+			"updated_at": time.Now(),
+		})
+
+	if result.Error != nil {
+		return fmt.Errorf("failed to update leave balance: %w", result.Error)
+	}
+
+	if result.RowsAffected == 0 {
+		return fmt.Errorf("leave balance not found")
+	}
+
+	return nil
 }
 
 func (r *leaveRepository) ListLeaveBalances(employeeID uuid.UUID) ([]domain.LeaveBalance, error) {

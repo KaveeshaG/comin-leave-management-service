@@ -38,7 +38,6 @@ func (h *LeaveRequestHandler) Create(c *gin.Context) {
 		return
 	}
 
-	// Convert date strings to time.Time format
 	req.StartDate, err = time.Parse("2006-01-02", req.StartDate.Format("2006-01-02"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid start date format"})

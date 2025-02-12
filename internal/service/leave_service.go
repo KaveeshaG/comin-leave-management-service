@@ -2,6 +2,7 @@ package service
 
 import (
 	"errors"
+	"time"
 
 	"github.com/Axontik/comin-leave-management-service/internal/domain"
 	"github.com/Axontik/comin-leave-management-service/internal/repository"
@@ -9,13 +10,22 @@ import (
 )
 
 type LeaveService interface {
-	// Leave Type methods
 	CreateLeaveType(leaveType *domain.LeaveType) error
 	GetLeaveType(orgID, id uuid.UUID) (*domain.LeaveType, error)
 	UpdateLeaveType(leaveType *domain.LeaveType) error
 	DeleteLeaveType(orgID, id uuid.UUID) error
 	ListLeaveTypes(orgID uuid.UUID, params *domain.ListLeaveTypesParams) ([]domain.LeaveType, int64, error)
 	CreateLeaveRequest(orgID uuid.UUID, req *domain.CreateLeaveRequestRequest) (*domain.LeaveRequest, error)
+
+	CreateBalanceAdjustment(adjustment *domain.LeaveBalanceAdjustment) error
+	UpdateLeaveBalance(balance *domain.LeaveBalance) error
+	GetLeaveBalance(employeeID uuid.UUID, leaveTypeID uuid.UUID, year int) (*domain.LeaveBalance, error)
+	ListLeaveBalances(employeeID uuid.UUID) ([]domain.LeaveBalance, error)
+	UpdateLeaveRequest(request *domain.LeaveRequest) error
+	GetLeaveRequest(id uuid.UUID) (*domain.LeaveRequest, error)
+	DeleteLeaveRequest(id uuid.UUID) error
+	ListLeaveRequests(orgID, employeeID uuid.UUID, status string) ([]domain.LeaveRequest, error)
+	GetOverlappingRequests(employeeID uuid.UUID, startDate, endDate time.Time) ([]domain.LeaveRequest, error)
 }
 
 type leaveService struct {
@@ -28,14 +38,11 @@ func NewLeaveService(leaveRepo repository.LeaveRepository) LeaveService {
 	}
 }
 
-// CreateLeaveType creates a new leave type
 func (s *leaveService) CreateLeaveType(leaveType *domain.LeaveType) error {
-	// Validate leave type
 	if err := validateLeaveType(leaveType); err != nil {
 		return err
 	}
 
-	// Check for duplicate name in the organization
 	existingTypes, _, err := s.ListLeaveTypes(leaveType.OrganizationID, &domain.ListLeaveTypesParams{
 		Name: leaveType.Name,
 	})
@@ -46,18 +53,15 @@ func (s *leaveService) CreateLeaveType(leaveType *domain.LeaveType) error {
 		return errors.New("leave type with this name already exists")
 	}
 
-	// Create leave type
 	return s.leaveRepo.CreateLeaveType(leaveType)
 }
 
-// GetLeaveType retrieves a leave type by ID
 func (s *leaveService) GetLeaveType(orgID, id uuid.UUID) (*domain.LeaveType, error) {
 	leaveType, err := s.leaveRepo.GetLeaveType(id)
 	if err != nil {
 		return nil, err
 	}
 
-	// Verify organization ownership
 	if leaveType.OrganizationID != orgID {
 		return nil, errors.New("leave type not found in organization")
 	}
@@ -65,20 +69,16 @@ func (s *leaveService) GetLeaveType(orgID, id uuid.UUID) (*domain.LeaveType, err
 	return leaveType, nil
 }
 
-// UpdateLeaveType updates an existing leave type
 func (s *leaveService) UpdateLeaveType(leaveType *domain.LeaveType) error {
-	// Validate leave type
 	if err := validateLeaveType(leaveType); err != nil {
 		return err
 	}
 
-	// Check if leave type exists
 	existing, err := s.GetLeaveType(leaveType.OrganizationID, leaveType.ID)
 	if err != nil {
 		return err
 	}
 
-	// Check for name uniqueness if name is being changed
 	if existing.Name != leaveType.Name {
 		existingTypes, _, err := s.ListLeaveTypes(leaveType.OrganizationID, &domain.ListLeaveTypesParams{
 			Name: leaveType.Name,
@@ -94,15 +94,12 @@ func (s *leaveService) UpdateLeaveType(leaveType *domain.LeaveType) error {
 	return s.leaveRepo.UpdateLeaveType(leaveType)
 }
 
-// DeleteLeaveType deletes a leave type
 func (s *leaveService) DeleteLeaveType(orgID, id uuid.UUID) error {
-	// Check if leave type exists and belongs to organization
 	existing, err := s.GetLeaveType(orgID, id)
 	if err != nil {
 		return err
 	}
 
-	// Check if there are any active leave requests using this type
 	hasActiveRequests, err := s.leaveRepo.HasActiveLeaveRequests(id)
 	if err != nil {
 		return err
@@ -114,9 +111,7 @@ func (s *leaveService) DeleteLeaveType(orgID, id uuid.UUID) error {
 	return s.leaveRepo.DeleteLeaveType(existing.ID)
 }
 
-// ListLeaveTypes lists leave types with filtering and pagination
 func (s *leaveService) ListLeaveTypes(orgID uuid.UUID, params *domain.ListLeaveTypesParams) ([]domain.LeaveType, int64, error) {
-	// Validate pagination parameters
 	if params != nil {
 		if params.Page < 1 {
 			params.Page = 1
@@ -128,8 +123,6 @@ func (s *leaveService) ListLeaveTypes(orgID uuid.UUID, params *domain.ListLeaveT
 
 	return s.leaveRepo.ListLeaveTypesWithOptions(orgID, params)
 }
-
-// Helper functions
 
 func validateLeaveType(leaveType *domain.LeaveType) error {
 	if leaveType.Name == "" {
@@ -148,7 +141,6 @@ func validateLeaveType(leaveType *domain.LeaveType) error {
 }
 
 func (s *leaveService) CreateLeaveRequest(orgID uuid.UUID, req *domain.CreateLeaveRequestRequest) (*domain.LeaveRequest, error) {
-	// Validate request
 	if req.EmployeeID == uuid.Nil {
 		return nil, errors.New("employee ID is required")
 	}
@@ -159,19 +151,16 @@ func (s *leaveService) CreateLeaveRequest(orgID uuid.UUID, req *domain.CreateLea
 		return nil, errors.New("start date cannot be after end date")
 	}
 
-	// Get leave type
 	leaveType, err := s.GetLeaveType(orgID, req.LeaveTypeID)
 	if err != nil {
 		return nil, err
 	}
 
-	// Calculate total days
 	totalDays := int(req.EndDate.Sub(req.StartDate).Milliseconds() / 86400000)
 	if totalDays > leaveType.MaxDaysPerRequest {
 		return nil, errors.New("total days exceed maximum allowed")
 	}
 
-	// Create leave request
 	leaveRequest := &domain.LeaveRequest{
 		EmployeeID:  req.EmployeeID,
 		LeaveTypeID: req.LeaveTypeID,
@@ -181,7 +170,6 @@ func (s *leaveService) CreateLeaveRequest(orgID uuid.UUID, req *domain.CreateLea
 		Reason:      req.Reason,
 	}
 
-	// Save leave request
 	if err := s.leaveRepo.CreateLeaveRequest(leaveRequest); err != nil {
 		return nil, err
 	}
@@ -189,5 +177,100 @@ func (s *leaveService) CreateLeaveRequest(orgID uuid.UUID, req *domain.CreateLea
 	return leaveRequest, nil
 }
 
+func (s *leaveService) CreateBalanceAdjustment(adjustment *domain.LeaveBalanceAdjustment) error {
+	return s.leaveRepo.CreateBalanceAdjustment(adjustment)
+}
 
+func (s *leaveService) UpdateLeaveBalance(balance *domain.LeaveBalance) error {
+	return s.leaveRepo.UpdateLeaveBalance(balance)
+}
 
+func (s *leaveService) GetLeaveBalance(employeeID uuid.UUID, leaveTypeID uuid.UUID, year int) (*domain.LeaveBalance, error) {
+	// Validate input
+	if employeeID == uuid.Nil {
+		return nil, errors.New("employee ID is required")
+	}
+	if leaveTypeID == uuid.Nil {
+		return nil, errors.New("leave type ID is required")
+	}
+	if year < 0 {
+		return nil, errors.New("year cannot be negative")
+	}
+
+	// Get leave balance
+	balance, err := s.leaveRepo.GetLeaveBalance(employeeID, leaveTypeID, year)
+	if err != nil {
+		return nil, err
+	}
+
+	return balance, nil
+}
+
+func (s *leaveService) DeleteLeaveRequest(id uuid.UUID) error {
+	panic("unimplemented")
+}
+
+func (s *leaveService) GetLeaveRequest(id uuid.UUID) (*domain.LeaveRequest, error) {
+	leaveRequest, err := s.leaveRepo.GetLeaveRequest(id)
+	if err != nil {
+		return nil, err
+	}
+
+	return leaveRequest, nil
+}
+
+func (s *leaveService) GetOverlappingRequests(employeeID uuid.UUID, startDate time.Time, endDate time.Time) ([]domain.LeaveRequest, error) {
+	if employeeID == uuid.Nil {
+		return nil, errors.New("employee ID is required")
+	}
+	if startDate.After(endDate) {
+		return nil, errors.New("start date cannot be after end date")
+	}
+	leaveRequests, err := s.leaveRepo.GetOverlappingRequests(employeeID, startDate, endDate)
+	if err != nil {
+		return nil, err
+	}
+
+	return leaveRequests, nil
+}
+
+func (s *leaveService) ListLeaveBalances(employeeID uuid.UUID) ([]domain.LeaveBalance, error) {
+	if employeeID == uuid.Nil {
+		return nil, errors.New("employee ID is required")
+	}
+	leaveBalances, err := s.leaveRepo.ListLeaveBalances(employeeID)
+	if err != nil {
+		return nil, err
+	}
+
+	return leaveBalances, nil
+}
+
+func (s *leaveService) ListLeaveRequests(orgID uuid.UUID, employeeID uuid.UUID, status string) ([]domain.LeaveRequest, error) {
+	if orgID == uuid.Nil {
+		return nil, errors.New("organization ID is required")
+	}
+	if employeeID == uuid.Nil {
+		return nil, errors.New("employee ID is required")
+	}
+	if status == "" {
+		return nil, errors.New("status is required")
+	}
+	leaveRequests, err := s.leaveRepo.ListLeaveRequests(orgID, employeeID, status)
+	if err != nil {
+		return nil, err
+	}
+
+	return leaveRequests, nil
+}
+
+func (s *leaveService) UpdateLeaveRequest(request *domain.LeaveRequest) error {
+	if request == nil {
+		return errors.New("request is required")
+	}
+	err := s.leaveRepo.UpdateLeaveRequest(request)
+	if err != nil {
+		return err
+	}
+	return nil
+}
