@@ -22,7 +22,7 @@ type LeaveRepository interface {
 	CreateLeaveRequest(request *domain.LeaveRequest) error
 	GetLeaveRequest(id uuid.UUID) (*domain.LeaveRequest, error)
 	UpdateLeaveRequest(request *domain.LeaveRequest) error
-	ListLeaveRequests(orgID, employeeID uuid.UUID, status string) ([]domain.LeaveRequest, error)
+	ListLeaveRequests(orgID uuid.UUID) ([]domain.LeaveRequest, error)
 	GetOverlappingRequests(employeeID uuid.UUID, startDate, endDate time.Time) ([]domain.LeaveRequest, error)
 
 	// LeaveBalance methods
@@ -217,16 +217,16 @@ func (r *leaveRepository) UpdateLeaveRequest(request *domain.LeaveRequest) error
 	})
 }
 
-func (r *leaveRepository) ListLeaveRequests(orgID, employeeID uuid.UUID, status string) ([]domain.LeaveRequest, error) {
+func (r *leaveRepository) ListLeaveRequests(orgID uuid.UUID) ([]domain.LeaveRequest, error) {
 	var requests []domain.LeaveRequest
 	query := r.db.Preload("LeaveType").Where("organization_id = ?", orgID)
 
-	if employeeID != uuid.Nil {
-		query = query.Where("employee_id = ?", employeeID)
-	}
-	if status != "" {
-		query = query.Where("status = ?", status)
-	}
+	// if employeeID != uuid.Nil {
+	// 	query = query.Where("employee_id = ?", employeeID)
+	// }
+	// if status != "" {
+	// 	query = query.Where("status = ?", status)
+	// }
 
 	err := query.Order("created_at DESC").Find(&requests).Error
 	return requests, err

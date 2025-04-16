@@ -90,6 +90,12 @@ type ListLeaveTypesParams struct {
 	RequiresApproval *bool
 }
 
+type ListLeaveRequestsParams struct {
+	Page     int
+	PageSize int
+	Status   string
+}
+
 type CreateLeaveRequestRequest struct {
 	EmployeeID  uuid.UUID `json:"employee_id" binding:"required"`
 	LeaveTypeID uuid.UUID `json:"leave_type_id" binding:"required"`

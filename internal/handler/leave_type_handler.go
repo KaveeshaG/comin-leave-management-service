@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	"github.com/Axontik/comin-leave-management-service/internal/domain"
+	"github.com/Axontik/comin-leave-management-service/internal/errors"
 	"github.com/Axontik/comin-leave-management-service/internal/service"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -108,21 +109,13 @@ func (h *LeaveTypeHandler) List(c *gin.Context) {
 		}
 	}
 
-	leaveTypes, total, err := h.leaveService.ListLeaveTypes(orgID, params)
+	leaveTypes, _, err := h.leaveService.ListLeaveTypes(orgID, params)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.Error(errors.NewInternalServerError("failed to fetch leave types"))
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"data": leaveTypes,
-		"meta": gin.H{
-			"total":       total,
-			"page":        params.Page,
-			"page_size":   params.PageSize,
-			"total_pages": (total + int64(params.PageSize) - 1) / int64(params.PageSize),
-		},
-	})
+	c.JSON(http.StatusOK, leaveTypes)
 }
 
 // @Summary Get leave type by ID

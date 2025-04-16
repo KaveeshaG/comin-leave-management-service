@@ -2,6 +2,7 @@ package handler
 
 import (
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/Axontik/comin-leave-management-service/internal/domain"
@@ -57,6 +58,51 @@ func (h *LeaveRequestHandler) Create(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusCreated, leaveRequest)
+}
+
+// @Summary List leave requests
+// @Tags leave-requests
+// @Produce json
+// @Param organization_id path string true "Organization ID"
+// @Param page query int false "Page number"
+// @Param page_size query int false "Page size"
+// @Param status query string false "Leave request status"
+// @Success 200 {object} domain.LeaveRequest
+func (h *LeaveRequestHandler) ListLeaveRequests(c *gin.Context) {
+	orgID, err := uuid.Parse(c.Param("organization_id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid organization id"})
+		return
+	}
+
+	params := &domain.ListLeaveRequestsParams{
+		Page:     1,
+		PageSize: 10,
+	}
+
+	if page := c.Query("page"); page != "" {
+		if pageNum, err := strconv.Atoi(page); err == nil {
+			params.Page = pageNum
+		}
+	}
+
+	if pageSize := c.Query("page_size"); pageSize != "" {
+		if size, err := strconv.Atoi(pageSize); err == nil {
+			params.PageSize = size
+		}
+	}
+
+	// if status := c.Query("status"); status != "" {
+	// 	params.Status = status
+	// }
+
+	leaveRequests, err := h.leaveService.ListLeaveRequests(orgID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, leaveRequests)
 }
 
 // Add other leave request methods: List, GetByID, Update, Delete, Approve, Reject, Cancel

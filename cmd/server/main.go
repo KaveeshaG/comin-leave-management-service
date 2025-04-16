@@ -184,7 +184,7 @@ func setupRouter(app *Application) *gin.Engine {
 			leaveRequests := orgs.Group("/leave-requests")
 			{
 				leaveRequests.POST("/", app.leaveRequestHandler.Create)
-				// leaveRequests.GET("/", app.leaveRequestHandler.List)
+				leaveRequests.GET("/", app.leaveRequestHandler.ListLeaveRequests)
 				// leaveRequests.GET("/:id", app.leaveRequestHandler.GetByID)
 				// leaveRequests.PUT("/:id", app.leaveRequestHandler.Update)
 				// leaveRequests.DELETE("/:id", app.leaveRequestHandler.Delete)

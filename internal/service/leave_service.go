@@ -24,7 +24,7 @@ type LeaveService interface {
 	UpdateLeaveRequest(request *domain.LeaveRequest) error
 	GetLeaveRequest(id uuid.UUID) (*domain.LeaveRequest, error)
 	DeleteLeaveRequest(id uuid.UUID) error
-	ListLeaveRequests(orgID, employeeID uuid.UUID, status string) ([]domain.LeaveRequest, error)
+	ListLeaveRequests(orgID uuid.UUID) ([]domain.LeaveRequest, error)
 	GetOverlappingRequests(employeeID uuid.UUID, startDate, endDate time.Time) ([]domain.LeaveRequest, error)
 }
 
@@ -246,17 +246,11 @@ func (s *leaveService) ListLeaveBalances(employeeID uuid.UUID) ([]domain.LeaveBa
 	return leaveBalances, nil
 }
 
-func (s *leaveService) ListLeaveRequests(orgID uuid.UUID, employeeID uuid.UUID, status string) ([]domain.LeaveRequest, error) {
+func (s *leaveService) ListLeaveRequests(orgID uuid.UUID) ([]domain.LeaveRequest, error) {
 	if orgID == uuid.Nil {
 		return nil, errors.New("organization ID is required")
 	}
-	if employeeID == uuid.Nil {
-		return nil, errors.New("employee ID is required")
-	}
-	if status == "" {
-		return nil, errors.New("status is required")
-	}
-	leaveRequests, err := s.leaveRepo.ListLeaveRequests(orgID, employeeID, status)
+	leaveRequests, err := s.leaveRepo.ListLeaveRequests(orgID)
 	if err != nil {
 		return nil, err
 	}
