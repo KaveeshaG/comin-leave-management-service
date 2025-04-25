@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
       - name: comin-leave-management-service
-        image: ghcr.io/kaveeshag/comin-leave-management-service:6fb067c65d2edcc8d86f44103ca7a85f71c620af
+        image: ghcr.io/kaveeshag/comin-leave-management-service:77c853faa8ffa298eebc54b047bd8ef0e3e92112
         imagePullPolicy: Always
         ports:
         - containerPort: 8083
