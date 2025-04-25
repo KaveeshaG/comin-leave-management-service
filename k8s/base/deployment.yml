@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: comin-leave-management-service
+  namespace: comin-dev
+  labels:
+    app: comin-leave-management-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: comin-leave-management-service
+  template:
+    metadata:
+      labels:
+        app: comin-leave-management-service
+    spec:
+      containers:
+      - name: comin-leave-management-service
+        image: ghcr.io/kaveeshag/comin-leave-management-service:dev
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8083
+        env:
+        - name: GO_ENV
+          value: "development"
+        resources:
+          limits:
+            cpu: "0.5"
+            memory: "512Mi"
+          requests:
+            cpu: "0.2"
+            memory: "256Mi"

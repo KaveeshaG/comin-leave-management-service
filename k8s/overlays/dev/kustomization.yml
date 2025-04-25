@@ -1,0 +1,20 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../base
+
+namespace: comin-dev
+
+# You can provide patches to override values in the base resources
+# patchesStrategicMerge:
+  # - deployment-patch.yml  # Uncomment if you create this file later
+
+# Or you can use patchesJson6902 for more targeted changes
+# patchesJson6902:
+# - target:
+#     group: apps
+#     version: v1
+#     kind: Deployment
+#     name: comin-authentication-service
+#   path: deployment-patch.json

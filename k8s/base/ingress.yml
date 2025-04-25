@@ -1,0 +1,25 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: comin-leave-management-service-ingress
+  namespace: comin-dev
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: comin.kaveeshagimhana.com
+    http:
+      paths:
+      - path: /api/v1/organizations
+        pathType: Prefix
+        backend:
+          service:
+            name: comin-leave-management-service
+            port:
+              number: 80
+      - path: /api/v1/employees
+        pathType: Prefix
+        backend:
+          service:
+            name: comin-leave-management-service
+            port:
+              number: 80

@@ -136,13 +136,13 @@ func (app *Application) metricsHandler(c *gin.Context) {
 func setupRouter(app *Application) *gin.Engine {
 	authServiceURL := os.Getenv("AUTH_SERVICE_URL")
 	if authServiceURL == "" {
-		authServiceURL = "http://localhost:8080/api/v1/auth"
+		authServiceURL = "https://comin.kaveeshagimhana.com/api/v1/auth"
 	}
 	authClient := auth.NewAuthClient(authServiceURL)
 
 	orgServiceURL := os.Getenv("ORGANIZATION_SERVICE_URL")
 	if orgServiceURL == "" {
-		orgServiceURL = "http://localhost:8081/api/v1"
+		orgServiceURL = "https://comin.kaveeshagimhana.com/api/v1"
 	}
 	orgClient := organization.NewOrganizationClient(orgServiceURL)
 
