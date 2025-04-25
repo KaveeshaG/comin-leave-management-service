@@ -161,7 +161,7 @@ func setupRouter(app *Application) *gin.Engine {
 	router.GET("/metrics", app.metricsHandler)
 
 	// API routes
-	api := router.Group("/api/v1")
+	api := router.Group("/api/v1/leaves")
 	// api.Use(middleware.APIVersionCheck("1.0"))
 	{
 		// Organization-specific routes
